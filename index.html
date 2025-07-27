@@ -369,7 +369,7 @@
     <div class="container">
         <div class="header">
             <h1>Sameeksha</h1>
-            <p>Live Results & Leaderboards 
+            <p>Live Results & Leaderboards
                 <span id="statusIndicator" class="status-indicator status-loading">Loading...</span>
                 <button class="refresh-btn" onclick="manualRefresh()">🔄 Refresh</button>
             </p>
@@ -464,7 +464,7 @@
     </div>
 
     <footer style="text-align: center; padding: 20px; color: #94a3b8; font-size: 0.85rem; font-style: italic; margin-top: 30px;">
-        Made by Pranav
+        Made with 💖 Pranav
     </footer>
 
     <script>
@@ -523,9 +523,9 @@
                 // Add cache busting parameter with more randomness
                 const cacheBuster = `${new Date().getTime()}_${Math.random().toString(36).substr(2, 9)}`;
                 const url = `${filename}?v=${cacheBuster}`;
-                
+
                 console.log(`Loading ${filename} at ${new Date().toLocaleTimeString()}`);
-                
+
                 const response = await fetch(url, {
                     method: 'GET',
                     cache: 'no-cache',
@@ -535,20 +535,20 @@
                         'Expires': '0'
                     }
                 });
-                
+
                 if (!response.ok) {
                     console.warn(`Could not load ${filename}: ${response.status} ${response.statusText}`);
                     return [];
                 }
-                
+
                 const csvText = await response.text();
                 console.log(`Loaded ${filename}: ${csvText.length} characters`);
-                
+
                 if (!csvText.trim()) {
                     console.warn(`${filename} is empty`);
                     return [];
                 }
-                
+
                 const result = Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
@@ -579,11 +579,11 @@
                             position: cleanedRow.position || cleanedRow.Position || cleanedRow.rank || ''
                         };
                     });
-                    
+
                     const filteredData = cleanedData.filter(row =>
                         Object.values(row).some(value => value !== '')
                     );
-                    
+
                     console.log(`Processed ${filename}: ${filteredData.length} valid records`);
                     return filteredData;
                 }
@@ -598,10 +598,10 @@
         function updateStatus(status, message) {
             const indicator = document.getElementById('statusIndicator');
             const lastUpdated = document.getElementById('lastUpdated');
-            
+
             indicator.className = `status-indicator status-${status}`;
             indicator.textContent = message;
-            
+
             if (status === 'updated') {
                 lastUpdated.textContent = new Date().toLocaleTimeString();
             }
@@ -642,7 +642,7 @@
         async function loadAllData() {
             console.log('Loading all data at:', new Date().toLocaleTimeString());
             updateStatus('loading', 'Loading...');
-            
+
             const loadingElements = document.querySelectorAll('.loading');
             loadingElements.forEach(el => el.textContent = 'Loading...');
 
@@ -651,17 +651,17 @@
 
             try {
                 let totalRecords = 0;
-                
+
                 // Load individual and group results for all categories
                 for (let i = 1; i <= 5; i++) {
                     const catKey = `cat${i}`;
-                    
+
                     const individualData = await loadCSV(`${catKey}_individual.csv`);
                     const groupData = await loadCSV(`${catKey}_group.csv`);
-                    
+
                     allData.individual[catKey] = individualData;
                     allData.group[catKey] = groupData;
-                    
+
                     totalRecords += individualData.length + groupData.length;
 
                     // Collect all event names
@@ -684,9 +684,9 @@
                 updateResults();
                 updateCategoryBreakdown();
                 updateChart();
-                
+
                 updateStatus('updated', `Updated (${totalRecords} records)`);
-                
+
             } catch (error) {
                 console.error('Error loading data:', error);
                 updateStatus('loading', 'Error loading');
@@ -763,7 +763,7 @@
             });
 
             resultsBody.innerHTML = allResults.map(result => `
-                <tr>
+                <tr data-category="${result.category.toLowerCase()}">
                     <td>${result.event}</td>
                     <td>${result.type}</td>
                     <td>${result.name}</td>
@@ -786,31 +786,37 @@
             const eventFilter = document.getElementById('eventFilter').value;
             const rows = document.querySelectorAll('#resultsBody tr');
 
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 6) return;
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length < 6) return;
 
-                const event = cells[0].textContent.trim();
-                const type = cells[1].textContent.toLowerCase();
-                const category = cells[0].textContent.toLowerCase();
+            const event = cells[0].textContent.trim();
+            const type = cells[1].textContent.toLowerCase();
+            const rowCategory = row.getAttribute('data-category');
 
-                let showRow = true;
+            let showRow = true;
 
-                // Filter by category
-                if (categoryFilter) {
-                    const catName = categories[categoryFilter].name.toLowerCase();
-                    if (!category.includes(catName.split(' ')[1])) showRow = false;
+            // Filter by category
+            if (categoryFilter) {
+                const selectedCategoryName = categories[categoryFilter].name.toLowerCase();
+                if (rowCategory !== selectedCategoryName) {
+                    showRow = false;
                 }
+            }
 
-                // Filter by type
-                if (typeFilter && !type.includes(typeFilter)) showRow = false;
+            // Filter by type
+            if (typeFilter && !type.includes(typeFilter)) {
+                showRow = false;
+            }
 
-                // Filter by event
-                if (eventFilter && event !== eventFilter) showRow = false;
+        // Filter by event
+            if (eventFilter && event !== eventFilter) {
+                showRow = false;
+            }
 
-                row.style.display = showRow ? '' : 'none';
-            });
-        }
+            row.style.display = showRow ? '' : 'none';
+        });
+    }
 
         // Update category breakdown
         function updateCategoryBreakdown() {
