@@ -481,6 +481,13 @@
         // Store all events for the dropdown
         let allEvents = new Set();
 
+        // Filter state storage - THIS IS THE KEY FIX
+        let currentFilters = {
+            category: '',
+            type: '',
+            event: ''
+        };
+
         // House configuration
         const houses = {
             'Ganga': { color: '#FFA500', class: 'house-ganga' },
@@ -496,6 +503,20 @@
             cat4: { name: 'Category 4', classes: 'Classes 9-10' },
             cat5: { name: 'Category 5', classes: 'Classes 11-12' }
         };
+
+        // Save filter state
+        function saveFilterState() {
+            currentFilters.category = document.getElementById('categoryFilter').value;
+            currentFilters.type = document.getElementById('typeFilter').value;
+            currentFilters.event = document.getElementById('eventFilter').value;
+        }
+
+        // Restore filter state
+        function restoreFilterState() {
+            document.getElementById('categoryFilter').value = currentFilters.category;
+            document.getElementById('typeFilter').value = currentFilters.type;
+            document.getElementById('eventFilter').value = currentFilters.event;
+        }
 
         // Tab navigation
         function showTab(tabName) {
@@ -610,13 +631,14 @@
         // Manual refresh function
         function manualRefresh() {
             console.log('Manual refresh triggered');
+            saveFilterState(); // Save current filter state before refresh
             loadAllData();
         }
 
-        // Update event dropdown
+        // Update event dropdown with preserved selection
         function updateEventDropdown() {
             const eventFilter = document.getElementById('eventFilter');
-            const currentValue = eventFilter.value;
+            const savedEventValue = currentFilters.event; // Get saved value
 
             // Clear existing options except "All Events"
             eventFilter.innerHTML = '<option value="">All Events</option>';
@@ -633,8 +655,12 @@
             });
 
             // Restore previous selection if it still exists
-            if (currentValue && allEvents.has(currentValue)) {
-                eventFilter.value = currentValue;
+            if (savedEventValue && allEvents.has(savedEventValue)) {
+                eventFilter.value = savedEventValue;
+                currentFilters.event = savedEventValue;
+            } else if (savedEventValue && !allEvents.has(savedEventValue)) {
+                // If saved event no longer exists, clear it
+                currentFilters.event = '';
             }
         }
 
@@ -642,6 +668,9 @@
         async function loadAllData() {
             console.log('Loading all data at:', new Date().toLocaleTimeString());
             updateStatus('loading', 'Loading...');
+
+            // Save current filter state before reloading
+            saveFilterState();
 
             const loadingElements = document.querySelectorAll('.loading');
             loadingElements.forEach(el => el.textContent = 'Loading...');
@@ -684,6 +713,10 @@
                 updateResults();
                 updateCategoryBreakdown();
                 updateChart();
+
+                // Restore filter state and apply filters
+                restoreFilterState();
+                filterResults();
 
                 updateStatus('updated', `Updated (${totalRecords} records)`);
 
@@ -779,44 +812,47 @@
             `).join('');
         }
 
-        // Filter results
+        // Modified filter results function that also saves state
         function filterResults() {
+            // Save current filter state whenever filters are changed
+            saveFilterState();
+
             const categoryFilter = document.getElementById('categoryFilter').value;
             const typeFilter = document.getElementById('typeFilter').value;
             const eventFilter = document.getElementById('eventFilter').value;
             const rows = document.querySelectorAll('#resultsBody tr');
 
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length < 6) return;
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 6) return;
 
-            const event = cells[0].textContent.trim();
-            const type = cells[1].textContent.toLowerCase();
-            const rowCategory = row.getAttribute('data-category');
+                const event = cells[0].textContent.trim();
+                const type = cells[1].textContent.toLowerCase();
+                const rowCategory = row.getAttribute('data-category');
 
-            let showRow = true;
+                let showRow = true;
 
-            // Filter by category
-            if (categoryFilter) {
-                const selectedCategoryName = categories[categoryFilter].name.toLowerCase();
-                if (rowCategory !== selectedCategoryName) {
+                // Filter by category
+                if (categoryFilter) {
+                    const selectedCategoryName = categories[categoryFilter].name.toLowerCase();
+                    if (rowCategory !== selectedCategoryName) {
+                        showRow = false;
+                    }
+                }
+
+                // Filter by type
+                if (typeFilter && !type.includes(typeFilter)) {
                     showRow = false;
                 }
-            }
 
-            // Filter by type
-            if (typeFilter && !type.includes(typeFilter)) {
-                showRow = false;
-            }
+                // Filter by event
+                if (eventFilter && event !== eventFilter) {
+                    showRow = false;
+                }
 
-        // Filter by event
-            if (eventFilter && event !== eventFilter) {
-                showRow = false;
-            }
-
-            row.style.display = showRow ? '' : 'none';
-        });
-    }
+                row.style.display = showRow ? '' : 'none';
+            });
+        }
 
         // Update category breakdown
         function updateCategoryBreakdown() {
